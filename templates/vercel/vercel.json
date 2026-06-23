@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "name": "shadow-clone-enterprise-os",
+  "crons": [
+    { "path": "/api/cron/shadow-clone", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/security-scan", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/qa-validate",   "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/seo-monitor",   "schedule": "0 * * * *"   },
+    { "path": "/api/cron/comparison",    "schedule": "0 0 * * *"   }
+  ],
+  "functions": {
+    "agents/shadow-clone-agent/api.py": { "memory": 3008, "maxDuration": 300 },
+    "agents/qa-agent/api.py":           { "memory": 1024, "maxDuration": 60  },
+    "agents/security-agent/api.py":     { "memory": 1024, "maxDuration": 60  }
+  },
+  "env": {
+    "OPENAI_API_KEY":      "@openai-api-key",
+    "STRIPE_SECRET_KEY":   "@stripe-secret-key",
+    "SUPABASE_URL":        "@supabase-url",
+    "SUPABASE_KEY":        "@supabase-key",
+    "TWILIO_SID":          "@twilio-sid",
+    "TWILIO_TOKEN":        "@twilio-token",
+    "GITHUB_TOKEN":        "@github-token",
+    "VERCEL_TOKEN":        "@vercel-token"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options",           "value": "DENY"               },
+        { "key": "X-Content-Type-Options",    "value": "nosniff"            },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000"   },
+        { "key": "Permissions-Policy",        "value": "camera=(), microphone=()" }
+      ]
+    }
+  ]
+}
