@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow Clone Enterprise OS</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #6c47ff;
+    --accent2: #00d4ff;
+    --green: #00ff88;
+    --red: #ff4466;
+    --yellow: #ffcc00;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 50%, #0a0f1a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .logo-text h1 { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #fff, var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-text p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .header-stats { display: flex; gap: 24px; }
+  .stat { text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 800; color: var(--accent2); }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── Layout ── */
+  .main { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 81px); }
+  .left { padding: 32px; border-right: 1px solid var(--border); }
+  .right { background: var(--bg2); padding: 32px; overflow-y: auto; }
+
+  /* ── Launch Box ── */
+  .launch-box {
+    background: linear-gradient(135deg, #1a1030 0%, #0f1a2e 100%);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 28px;
+    box-shadow: 0 0 40px rgba(108,71,255,0.15);
+  }
+  .launch-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+  .launch-box p { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .input-group { flex: 1; }
+  .input-group label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .input-group input {
+    width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; color: var(--text); font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .input-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,71,255,0.15); }
+  .input-group input::placeholder { color: var(--muted); }
+
+  .clone-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+    font-size: 15px; font-weight: 700; letter-spacing: 0.5px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    color: white; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .clone-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(108,71,255,0.4); }
+  .clone-btn:active { transform: translateY(0); }
+  .clone-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .clone-btn .btn-inner { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* Quick presets */
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .preset-btn {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-size: 12px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Progress bar */
+  .progress-wrap { margin-top: 16px; display: none; }
+  .progress-wrap.active { display: block; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .progress-track { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 0.4s; }
+  .progress-steps { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .step-chip {
+    padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .step-chip.pending { border-color: var(--border); color: var(--muted); }
+  .step-chip.active { border-color: var(--accent); color: var(--accent); animation: pulse 1.5s infinite; }
+  .step-chip.done { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.08); }
+  .step-chip.error { border-color: var(--red); color: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* ── Jobs List ── */
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .jobs-list { display: flex; flex-direction: column; gap: 12px; }
+  .job-card {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 20px; cursor: pointer; transition: all 0.2s;
+  }
+  .job-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .job-card.selected { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2); }
+  .job-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .job-url { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+  .job-status { padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .status-complete { background: rgba(0,255,136,0.12); color: var(--green); }
+  .status-cloning,.status-creating_drive,.status-creating_github,.status-creating_vercel,.status-deploying { background: rgba(108,71,255,0.15); color: #a78bfa; }
+  .status-failed { background: rgba(255,68,102,0.12); color: var(--red); }
+  .status-queued { background: rgba(255,204,0,0.12); color: var(--yellow); }
+  .job-meta { display: flex; gap: 16px; font-size: 12px; color: var(--muted); }
+  .job-links { display: flex; gap: 8px; margin-top: 10px; }
+  .link-btn {
+    padding: 5px 12px; border-radius: 8px; font-size: 11px; font-weight: 600;
+    text-decoration: none; display: flex; align-items: center; gap: 5px; border: 1px solid var(--border);
+    color: var(--muted); transition: all 0.15s;
+  }
+  .link-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .link-btn.drive:hover { border-color: #fbbc04; color: #fbbc04; }
+  .link-btn.github:hover { border-color: #e6edf3; color: #e6edf3; }
+  .link-btn.vercel:hover { border-color: #fff; color: #fff; }
+
+  /* ── Detail Panel ── */
+  .detail-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .detail-url { color: var(--muted); font-size: 12px; margin-bottom: 20px; word-break: break-all; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .detail-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .detail-stat-val { font-size: 20px; font-weight: 800; color: var(--accent2); }
+  .detail-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .log-box {
+    background: #050508; border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 11px;
+    color: #7dd3fc; line-height: 1.7; max-height: 300px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── Action buttons ── */
+  .action-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .action-btn {
+    flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--text); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Live activity feed ── */
+  .feed-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .feed-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .feed-dot.blue { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+  .feed-dot.red { background: var(--red); }
+  .feed-dot.yellow { background: var(--yellow); }
+  .feed-text { font-size: 12px; color: var(--text); line-height: 1.4; }
+  .feed-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .right { border-top: 1px solid var(--border); }
+    .header-stats { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🔱</div>
+    <div class="logo-text">
+      <h1>Shadow Clone Enterprise OS</h1>
+      <p>Jeremy Bensen · Strategic Minds Advisory</p>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat">
+      <div class="stat-val" id="totalJobs">0</div>
+      <div class="stat-label">Total Clones</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="completedJobs">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="activeJobs">0</div>
+      <div class="stat-label">Active</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="left">
+
+    <!-- LAUNCH BOX -->
+    <div class="launch-box">
+      <h2>⚡ One-Click Clone</h2>
+      <p>Paste a URL → system auto-creates Drive folder, GitHub repo, and Vercel project in seconds.</p>
+      
+      <div class="input-row">
+        <div class="input-group" style="flex:2">
+          <label>Target URL</label>
+          <input type="url" id="targetUrl" placeholder="https://competitor.com" />
+        </div>
+        <div class="input-group" style="flex:1">
+          <label>Client Name (optional)</label>
+          <input type="text" id="clientName" placeholder="Acme Co." />
+        </div>
+      </div>
+
+      <div class="presets">
+        <span style="font-size:11px;color:var(--muted);padding:6px 0;">Quick fill:</span>
+        <button class="preset-btn" onclick="setPreset('https://xtremepolishingsystems.com')">XPS</button>
+        <button class="preset-btn" onclick="setPreset('https://phoenixepoxypros.com')">Phoenix Epoxy</button>
+        <button class="preset-btn" onclick="setPreset('https://ameripolish.com')">Ameripolish</button>
+        <button class="preset-btn" onclick="setPreset('https://directcolors.com')">Direct Colors</button>
+        <button class="preset-btn" onclick="setPreset('')">Clear</button>
+      </div>
+
+      <button class="clone-btn" id="launchBtn" onclick="launchClone()">
+        <div class="btn-inner">
+          <span id="btnIcon">🚀</span>
+          <span id="btnText">Launch Clone Job</span>
+        </div>
+      </button>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-label">
+          <span id="progressLabel">Initializing...</span>
+          <span id="progressPct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-steps">
+          <div class="step-chip pending" id="step-drive">📁 Drive</div>
+          <div class="step-chip pending" id="step-github">🐙 GitHub</div>
+          <div class="step-chip pending" id="step-vercel">▲ Vercel</div>
+          <div class="step-chip pending" id="step-clone">🔱 Clone</div>
+          <div class="step-chip pending" id="step-security">🔒 Security</div>
+          <div class="step-chip pending" id="step-deploy">🚀 Deploy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JOBS LIST -->
+    <div class="section-title">
+      <span>📋</span> Clone Jobs
+      <span id="jobCount" style="color:var(--accent2);margin-left:4px"></span>
+    </div>
+    <div class="jobs-list" id="jobsList">
+      <div class="empty-state">
+        <div class="empty-icon">🔱</div>
+        <p>No clone jobs yet.<br>Paste a URL above and hit Launch.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div class="section-title"><span>📊</span> Job Details</div>
+    <div id="detailPanel">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>Select a job to see<br>full details and links.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:32px">
+      <div class="section-title"><span>⚡</span> Live Activity</div>
+      <div id="activityFeed">
+        <div class="feed-item">
+          <div class="feed-dot blue"></div>
+          <div>
+            <div class="feed-text">Shadow Clone OS initialized</div>
+            <div class="feed-time">Now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const API_BASE = 'https://superagent-5dd22ea4.base44.app/functions';
+const ENTITIES_BASE = 'https://superagent-5dd22ea4.base44.app/api/entities';
+
+let jobs = [];
+let selectedJobId = null;
+let pollInterval = null;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function setPreset(url) {
+  document.getElementById('targetUrl').value = url;
+  if (!url) document.getElementById('clientName').value = '';
+}
+
+function addActivity(msg, type = 'blue') {
+  const feed = document.getElementById('activityFeed');
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `
+    <div class="feed-dot ${type}"></div>
+    <div>
+      <div class="feed-text">${msg}</div>
+      <div class="feed-time">${new Date().toLocaleTimeString()}</div>
+    </div>`;
+  feed.insertBefore(item, feed.firstChild);
+  // Keep only last 20
+  while (feed.children.length > 20) feed.removeChild(feed.lastChild);
+}
+
+function formatTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString();
+}
+
+// ── API Calls ────────────────────────────────────────────────────────────────
+async function createJobRecord(targetUrl, clientName) {
+  // Create via Base44 entity API
+  const res = await fetch(`${ENTITIES_BASE}/CloneJob`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      target_url: targetUrl,
+      client_name: clientName || targetUrl.replace(/https?:\/\//,'').split('/')[0],
+      status: 'queued',
+      progress_pct: 0,
+      log: ''
+    })
+  });
+  if (!res.ok) throw new Error('Failed to create job record');
+  return res.json();
+}
+
+async function triggerLaunch(jobId, targetUrl, clientName) {
+  const res = await fetch(`${API_BASE}/launchCloneJob`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      job_id: jobId,
+      target_url: targetUrl,
+      client_name: clientName
+    })
+  });
+  return res.json();
+}
+
+async function fetchJobs() {
+  try {
+    const res = await fetch(`${ENTITIES_BASE}/CloneJob?sort=-created_date&limit=50`);
+    if (!res.ok) return;
+    const data = await res.json();
+    jobs = Array.isArray(data) ? data : (data.items || []);
+    renderJobs();
+    updateStats();
+  } catch(e) { console.error('fetchJobs error:', e); }
+}
+
+// ── Launch ───────────────────────────────────────────────────────────────────
+async function launchClone() {
+  const url = document.getElementById('targetUrl').value.trim();
+  const name = document.getElementById('clientName').value.trim();
+  
+  if (!url) {
+    document.getElementById('targetUrl').style.borderColor = 'var(--red)';
+    setTimeout(() => document.getElementById('targetUrl').style.borderColor = '', 2000);
+    return;
+  }
+
+  // Validate URL
+  try { new URL(url); } catch(e) {
+    alert('Please enter a valid URL (including https://)');
+    return;
+  }
+
+  const btn = document.getElementById('launchBtn');
+  btn.disabled = true;
+  document.getElementById('btnIcon').textContent = '⏳';
+  document.getElementById('btnText').textContent = 'Launching...';
+  document.getElementById('progressWrap').classList.add('active');
+
+  addActivity(`🚀 Launching clone: ${url}`, 'blue');
+  setStepStatus('drive', 'active');
+  updateProgress(5, 'Creating Drive folder...');
+
+  try {
+    // Step 1: Create entity record
+    const job = await createJobRecord(url, name);
+    selectedJobId = job.id || job._id;
+    
+    addActivity('📁 Creating Google Drive structure...', 'blue');
+    setStepStatus('drive', 'active');
+    updateProgress(10, 'Drive: Creating 12-folder structure...');
+
+    // Step 2: Fire the backend function
+    triggerLaunch(selectedJobId, url, name).then(result => {
+      if (result.error) {
+        addActivity(`❌ Error: ${result.error}`, 'red');
+      } else {
+        addActivity(`✅ Infrastructure ready!`, 'green');
+        if (result.drive_url) addActivity(`📁 Drive: ${result.drive_url}`, 'green');
+        if (result.github_url) addActivity(`🐙 GitHub: ${result.github_url}`, 'green');
+        if (result.vercel_url) addActivity(`▲ Vercel: ${result.vercel_url}`, 'green');
+      }
+    });
+
+    // Poll for updates
+    let pollCount = 0;
+    const poll = setInterval(async () => {
+      pollCount++;
+      await fetchJobs();
+      const job = jobs.find(j => (j.id || j._id) === selectedJobId);
+      if (!job) return;
+
+      const pct = job.progress_pct || 0;
+      updateProgress(pct, getStatusLabel(job.status));
+      updateStepsFromStatus(job.status);
+      renderDetail(job);
+
+      if (job.status === 'complete' || job.status === 'failed' || pollCount > 60) {
+        clearInterval(poll);
+        btn.disabled = false;
+        document.getElementById('btnIcon').textContent = '🚀';
+        document.getElementById('btnText').textContent = 'Launch Clone Job';
+        if (job.status === 'complete') {
+          addActivity('🎉 Clone job complete!', 'green');
+          setAllStepsDone();
+        }
+      }
+    }, 2000);
+
+  } catch(e) {
+    addActivity(`❌ Launch failed: ${e.message}`, 'red');
+    btn.disabled = false;
+    document.getElementById('btnIcon').textContent = '🚀';
+    document.getElementById('btnText').textContent = 'Launch Clone Job';
+  }
+}
+
+function getStatusLabel(status) {
+  const map = {
+    queued: 'Queued...',
+    cloning: '🔱 Shadow cloning in progress...',
+    creating_drive: '📁 Creating Drive folders...',
+    creating_github: '🐙 Creating GitHub repo...',
+    creating_vercel: '▲ Creating Vercel project...',
+    deploying: '🚀 Deploying...',
+    complete: '✅ Complete!',
+    failed: '❌ Failed',
+  };
+  return map[status] || status;
+}
+
+function updateStepsFromStatus(status) {
+  const stepMap = {
+    creating_drive: ['drive'],
+    creating_github: ['drive', 'github'],
+    creating_vercel: ['drive', 'github', 'vercel'],
+    cloning: ['drive', 'github', 'vercel', 'clone'],
+    deploying: ['drive', 'github', 'vercel', 'clone', 'security'],
+    complete: ['drive', 'github', 'vercel', 'clone', 'security', 'deploy'],
+  };
+  const doneSteps = stepMap[status] || [];
+  ['drive','github','vercel','clone','security','deploy'].forEach(s => {
+    if (doneSteps.includes(s)) setStepStatus(s, 'done');
+    else if (s === doneSteps[doneSteps.length-1]) setStepStatus(s, 'active');
+  });
+}
+
+function setAllStepsDone() {
+  ['drive','github','vercel','clone','security','deploy'].forEach(s => setStepStatus(s, 'done'));
+}
+
+function setStepStatus(step, status) {
+  const el = document.getElementById(`step-${step}`);
+  if (!el) return;
+  el.className = `step-chip ${status}`;
+}
+
+function updateProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('totalJobs').textContent = jobs.length;
+  document.getElementById('completedJobs').textContent = jobs.filter(j => j.status === 'complete').length;
+  document.getElementById('activeJobs').textContent = jobs.filter(j => !['complete','failed'].includes(j.status)).length;
+  document.getElementById('jobCount').textContent = jobs.length ? `(${jobs.length})` : '';
+}
+
+function renderJobs() {
+  const list = document.getElementById('jobsList');
+  if (!jobs.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔱</div><p>No clone jobs yet.<br>Paste a URL above and hit Launch.</p></div>';
+    return;
+  }
+
+  list.innerHTML = jobs.map(job => {
+    const id = job.id || job._id;
+    const isSelected = id === selectedJobId;
+    const links = [];
+    if (job.drive_folder_url) links.push(`<a href="${job.drive_folder_url}" target="_blank" class="link-btn drive">📁 Drive</a>`);
+    if (job.github_repo_url) links.push(`<a href="${job.github_repo_url}" target="_blank" class="link-btn github">🐙 GitHub</a>`);
+    if (job.vercel_url) links.push(`<a href="${job.vercel_url}" target="_blank" class="link-btn vercel">▲ Vercel</a>`);
+
+    return `
+      <div class="job-card ${isSelected ? 'selected' : ''}" onclick="selectJob('${id}')">
+        <div class="job-header">
+          <div class="job-url">${job.target_url || '—'}</div>
+          <div class="job-status status-${job.status}">${job.status}</div>
+        </div>
+        <div class="job-meta">
+          <span>${job.client_name || '—'}</span>
+          <span>${job.pages_cloned ? job.pages_cloned + ' pages' : ''}</span>
+          <span>${job.assets_cloned ? job.assets_cloned + ' assets' : ''}</span>
+        </div>
+        ${links.length ? `<div class="job-links">${links.join('')}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function selectJob(id) {
+  selectedJobId = id;
+  renderJobs(); // re-render to show selection
+  const job = jobs.find(j => (j.id || j._id) === id);
+  if (job) renderDetail(job);
+}
+
+function renderDetail(job) {
+  const panel = document.getElementById('detailPanel');
+  const id = job.id || job._id;
+
+  panel.innerHTML = `
+    <div class="detail-title">${job.client_name || job.target_url}</div>
+    <div class="detail-url">${job.target_url}</div>
+    
+    <div class="action-row">
+      ${job.drive_folder_url ? `<a href="${job.drive_folder_url}" target="_blank" class="action-btn">📁 Open Drive</a>` : ''}
+      ${job.github_repo_url ? `<a href="${job.github_repo_url}" target="_blank" class="action-btn">🐙 Open GitHub</a>` : ''}
+      ${job.vercel_url ? `<a href="${job.vercel_url}" target="_blank" class="action-btn">▲ Open Vercel</a>` : ''}
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-stat">
+        <div class="detail-stat-val">${job.progress_pct || 0}%</div>
+        <div class="detail-stat-label">Progress</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val">${job.pages_cloned || 0}</div>
+        <div class="detail-stat-label">Pages</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val">${job.assets_cloned || 0}</div>
+        <div class="detail-stat-label">Assets</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val">${job.api_endpoints || 0}</div>
+        <div class="detail-stat-label">API Endpoints</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val">${job.security_score || '—'}</div>
+        <div class="detail-stat-label">Security Score</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val">${job.clone_time_seconds ? job.clone_time_seconds + 's' : '—'}</div>
+        <div class="detail-stat-label">Clone Time</div>
+      </div>
+    </div>
+
+    ${job.log ? `
+      <div class="section-title" style="margin-bottom:8px"><span>📟</span> Live Log</div>
+      <div class="log-box">${job.log}</div>
+    ` : ''}
+
+    ${job.error_message ? `
+      <div style="margin-top:12px;padding:12px;background:rgba(255,68,102,0.08);border:1px solid var(--red);border-radius:10px;font-size:12px;color:var(--red)">
+        ❌ ${job.error_message}
+      </div>
+    ` : ''}
+  `;
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+fetchJobs();
+setInterval(fetchJobs, 5000); // refresh every 5s
+
+// Enter key on URL input
+document.getElementById('targetUrl').addEventListener('keydown', e => {
+  if (e.key === 'Enter') launchClone();
+});
+</script>
+</body>
+</html>
